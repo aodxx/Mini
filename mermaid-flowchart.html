@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowchart: กระบวนการพัฒนา AI Model</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  #mermaid-container svg { max-width: 100%; height: auto; }
+  .node-detail { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-3xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🔀 กระบวนการพัฒนา AI Model</h1>
+    <p class="text-slate-500 mt-1">คลิกที่แต่ละขั้นตอนเพื่อดูรายละเอียดเพิ่มเติม</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+
+    <!-- พื้นที่วาด Flowchart -->
+    <div id="mermaid-container" class="flex justify-center overflow-x-auto pb-4"></div>
+
+    <!-- แผงรายละเอียด -->
+    <div id="detail-panel" class="mt-4 bg-indigo-50 rounded-xl p-5 hidden">
+      <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-2">รายละเอียดขั้นตอน</p>
+      <h3 id="detail-title" class="text-lg font-bold text-slate-800 mb-2"></h3>
+      <p id="detail-text" class="text-sm text-slate-600 leading-relaxed"></p>
+    </div>
+    <p id="hint-text" class="text-xs text-slate-400 text-center mt-4">👆 คลิกที่กล่องในแผนผังด้านบนเพื่อดูรายละเอียด</p>
+
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูลรายละเอียดของแต่ละขั้นตอน (แยกจาก diagram) =====
+  const stepDetails = {
+    A: { title: "รวบรวมข้อมูล (Data Collection)", text: "รวบรวมข้อมูลดิบจากแหล่งต่างๆ ที่เกี่ยวข้องกับปัญหาที่ต้องการแก้ไข เช่น ข้อความ ภาพ หรือข้อมูลตัวเลข" },
+    B: { title: "เตรียมข้อมูล (Data Preprocessing)", text: "ทำความสะอาดข้อมูล จัดการค่าที่ขาดหาย และแปลงข้อมูลให้อยู่ในรูปแบบที่โมเดลนำไปใช้ได้" },
+    C: { title: "เลือกโมเดล (Model Selection)", text: "เลือกสถาปัตยกรรมโมเดลที่เหมาะสมกับประเภทของปัญหา เช่น การจำแนกประเภทหรือการทำนายค่า" },
+    D: { title: "ฝึกโมเดล (Training)", text: "ป้อนข้อมูลฝึกสอนให้โมเดลเรียนรู้รูปแบบและความสัมพันธ์ของข้อมูล" },
+    E: { title: "ประเมินผล (Evaluation)", text: "ทดสอบโมเดลกับข้อมูลที่ไม่เคยเห็นมาก่อน เพื่อวัดความแม่นยำและประสิทธิภาพ" },
+    F: { title: "ผลลัพธ์ดีพอหรือไม่?", text: "หากความแม่นยำยังไม่ผ่านเกณฑ์ที่ตั้งไว้ ต้องย้อนกลับไปปรับปรุงข้อมูลหรือโมเดล" },
+    G: { title: "ปรับจูนโมเดล (Fine-tuning)", text: "ปรับพารามิเตอร์หรือโครงสร้างของโมเดลเพื่อเพิ่มความแม่นยำ แล้ววนกลับไปฝึกใหม่" },
+    H: { title: "นำไปใช้งานจริง (Deployment)", text: "นำโมเดลที่ผ่านเกณฑ์แล้วไปใช้งานจริงในระบบ Production" }
+  };
+
+  const diagram = `
+flowchart TD
+    A["📊 รวบรวมข้อมูล"] --> B["🧹 เตรียมข้อมูล"]
+    B --> C["🧩 เลือกโมเดล"]
+    C --> D["🏋️ ฝึกโมเดล"]
+    D --> E["📏 ประเมินผล"]
+    E --> F{"ผลลัพธ์ดีพอ?"}
+    F -- ยังไม่ดีพอ --> G["🔧 ปรับจูนโมเดล"]
+    G --> D
+    F -- ดีพอแล้ว --> H["🚀 นำไปใช้งานจริง"]
+
+    style A fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+    style B fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+    style C fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px
+    style D fill:#ede9fe,stroke:#8b5cf6,stroke-width:2px
+    style E fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
+    style F fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+    style G fill:#fee2e2,stroke:#ef4444,stroke-width:2px
+    style H fill:#d1fae5,stroke:#10b981,stroke-width:2px
+  `;
+
+  mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: { fontFamily: 'Segoe UI, Noto Sans Thai, sans-serif' } });
+
+  async function renderFlowchart() {
+    const { svg } = await mermaid.render('flowchart-svg', diagram);
+    document.getElementById('mermaid-container').innerHTML = svg;
+    attachClickHandlers();
+  }
+
+  // ===== ผูก event คลิกให้แต่ละโหนดในแผนผัง =====
+  function attachClickHandlers() {
+    Object.keys(stepDetails).forEach(nodeId => {
+      // Mermaid ใส่ id ให้ node ในรูปแบบ flowchart-<nodeId>-<index>
+      const nodeEls = document.querySelectorAll(`[id^="flowchart-${nodeId}-"]`);
+      nodeEls.forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => showDetail(nodeId));
+      });
+    });
+  }
+
+  function showDetail(nodeId) {
+    const detail = stepDetails[nodeId];
+    document.getElementById('detail-panel').classList.remove('hidden');
+    document.getElementById('detail-panel').classList.add('node-detail');
+    document.getElementById('detail-title').textContent = detail.title;
+    document.getElementById('detail-text').textContent = detail.text;
+    document.getElementById('hint-text').classList.add('hidden');
+  }
+
+  renderFlowchart();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Chart: การเติบโตของผู้ใช้งาน AI Chatbot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-3xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">📈 การเติบโตของผู้ใช้งาน AI Chatbot</h1>
+    <p class="text-slate-500 mt-1">เปรียบเทียบจำนวนผู้ใช้งานรายเดือน ปี 2568 (หน่วย: ล้านคน)</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+
+    <!-- สรุปตัวเลขเด่น -->
+    <div class="grid grid-cols-3 gap-4 mb-6" id="summary-cards"></div>
+
+    <!-- กราฟ -->
+    <div class="relative h-72">
+      <canvas id="line-chart"></canvas>
+    </div>
+
+    <p class="text-xs text-slate-400 text-center mt-4">💡 คลิกที่ชื่อในตำนาน (legend) ด้านล่างกราฟเพื่อซ่อน/แสดงเส้นข้อมูล</p>
+
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูล (แยกจาก UI logic) =====
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+  const datasets = [
+    {
+      label: "แชทบอททั่วไป",
+      color: "#6366f1", // indigo-500
+      data: [12, 15, 19, 24, 30, 38, 45, 52, 58, 63, 68, 74]
+    },
+    {
+      label: "ผู้ช่วยเขียนโค้ด",
+      color: "#a855f7", // purple-500
+      data: [5, 7, 9, 13, 18, 24, 29, 33, 37, 40, 43, 47]
+    },
+    {
+      label: "เครื่องมือสร้างภาพ",
+      color: "#f97316", // orange-500
+      data: [8, 10, 11, 14, 16, 19, 23, 27, 30, 33, 35, 38]
+    }
+  ];
+
+  // ===== การ์ดสรุปตัวเลขเด่น =====
+  function renderSummaryCards() {
+    const container = document.getElementById('summary-cards');
+    container.innerHTML = datasets.map(ds => {
+      const first = ds.data[0];
+      const last = ds.data[ds.data.length - 1];
+      const growth = (((last - first) / first) * 100).toFixed(0);
+      return `
+        <div class="rounded-xl p-4 border border-slate-100">
+          <p class="text-xs text-slate-400 mb-1">${ds.label}</p>
+          <p class="text-xl font-bold" style="color: ${ds.color}">${last} ล้านคน</p>
+          <p class="text-xs text-emerald-500 mt-1">▲ เติบโต ${growth}%</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ===== สร้างกราฟด้วย Chart.js =====
+  function renderChart() {
+    const ctx = document.getElementById('line-chart').getContext('2d');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: datasets.map(ds => ({
+          label: ds.label,
+          data: ds.data,
+          borderColor: ds.color,
+          backgroundColor: ds.color + '20',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2.5
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { family: 'Segoe UI' } }
+          },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            padding: 12,
+            titleFont: { weight: 'bold' },
+            callbacks: {
+              label: (context) => `${context.dataset.label}: ${context.parsed.y} ล้านคน`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#f1f5f9' },
+            ticks: { callback: (val) => val + 'M' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        },
+        animation: { duration: 900, easing: 'easeOutQuart' }
+      }
+    });
+  }
+
+  renderSummaryCards();
+  renderChart();
+</script>
+
+</body>
+</html>

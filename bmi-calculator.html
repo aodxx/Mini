@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMI Calculator: คำนวณดัชนีมวลกาย</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: #e0e7ff;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #6366f1;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(99,102,241,0.4);
+  }
+  .gauge-marker { transition: left 0.3s ease; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-lg">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">⚖️ คำนวณดัชนีมวลกาย (BMI)</h1>
+    <p class="text-slate-500 mt-1">ปรับส่วนสูงและน้ำหนักเพื่อดูค่า BMI แบบเรียลไทม์</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+
+    <!-- Input: ส่วนสูง -->
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <label class="text-sm font-medium text-slate-600">ส่วนสูง</label>
+        <span class="text-sm font-bold text-indigo-600" id="height-display">170 ซม.</span>
+      </div>
+      <input type="range" id="height" min="120" max="220" step="1" value="170" class="w-full">
+    </div>
+
+    <!-- Input: น้ำหนัก -->
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <label class="text-sm font-medium text-slate-600">น้ำหนัก</label>
+        <span class="text-sm font-bold text-indigo-600" id="weight-display">65 กก.</span>
+      </div>
+      <input type="range" id="weight" min="30" max="150" step="0.5" value="65" class="w-full">
+    </div>
+
+    <!-- ผลลัพธ์ -->
+    <div class="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl p-6 text-center text-white mb-5">
+      <p class="text-sm text-indigo-100 mb-1">ค่า BMI ของคุณ</p>
+      <p class="text-4xl font-bold" id="bmi-value">0</p>
+      <p class="text-lg font-medium mt-1" id="bmi-category">-</p>
+    </div>
+
+    <!-- แถบสเกลแสดงตำแหน่ง -->
+    <div class="relative mb-2">
+      <div class="h-3 rounded-full overflow-hidden flex">
+        <div class="flex-1 bg-sky-300"></div>
+        <div class="flex-1 bg-emerald-400"></div>
+        <div class="flex-1 bg-amber-400"></div>
+        <div class="flex-1 bg-rose-400"></div>
+      </div>
+      <div id="gauge-marker" class="gauge-marker absolute -top-1.5 w-1 h-6 bg-slate-800 rounded-full" style="left: 0%"></div>
+    </div>
+    <div class="flex justify-between text-[11px] text-slate-400 mb-6">
+      <span>น้ำหนักน้อย</span>
+      <span>ปกติ</span>
+      <span>เกิน</span>
+      <span>อ้วน</span>
+    </div>
+
+    <p class="text-sm text-slate-500 leading-relaxed bg-slate-50 rounded-xl p-4" id="bmi-note"></p>
+
+    <button onclick="resetCalculator()" class="w-full mt-5 text-sm text-slate-400 hover:text-indigo-500 transition">🔄 รีเซ็ตค่าเริ่มต้น</button>
+
+  </div>
+
+  <p class="text-xs text-slate-400 text-center mt-4">*BMI เป็นเพียงตัวชี้วัดเบื้องต้น ไม่ได้สะท้อนสัดส่วนกล้ามเนื้อหรือไขมันที่แม่นยำ ควรปรึกษาแพทย์หรือนักโภชนาการสำหรับการประเมินสุขภาพที่ครอบคลุม</p>
+
+</div>
+
+<script>
+  // ===== เกณฑ์การจัดหมวดหมู่ BMI (มาตรฐานองค์การอนามัยโลก) =====
+  const categories = [
+    { max: 18.5, label: "น้ำหนักน้อยกว่าเกณฑ์", note: "ค่า BMI ของคุณอยู่ในเกณฑ์น้ำหนักน้อย การดูแลโภชนาการที่เหมาะสมและปรึกษาผู้เชี่ยวชาญจะช่วยให้วางแผนสุขภาพได้ดียิ่งขึ้น" },
+    { max: 23, label: "น้ำหนักปกติ", note: "ค่า BMI ของคุณอยู่ในเกณฑ์ปกติ การรักษาสมดุลระหว่างอาหารและกิจกรรมทางกายจะช่วยคงระดับนี้ไว้ได้ดี" },
+    { max: 25, label: "น้ำหนักเกินเล็กน้อย", note: "ค่า BMI ของคุณสูงกว่าเกณฑ์ปกติเล็กน้อย การปรับกิจวัตรประจำวันและปรึกษาผู้เชี่ยวชาญด้านสุขภาพอาจเป็นประโยชน์" },
+    { max: 30, label: "น้ำหนักเกิน (อ้วนระดับ 1)", note: "ค่า BMI ของคุณอยู่ในเกณฑ์น้ำหนักเกิน แนะนำให้ปรึกษาแพทย์หรือนักโภชนาการเพื่อวางแผนดูแลสุขภาพที่เหมาะสมกับคุณ" },
+    { max: Infinity, label: "อ้วน (อ้วนระดับ 2)", note: "ค่า BMI ของคุณอยู่ในเกณฑ์สูง แนะนำให้ปรึกษาแพทย์เพื่อรับคำแนะนำด้านสุขภาพที่เหมาะสมกับสภาพร่างกายของคุณโดยเฉพาะ" }
+  ];
+
+  function calculateBMI(heightCm, weightKg) {
+    const heightM = heightCm / 100;
+    return weightKg / (heightM * heightM);
+  }
+
+  function getCategory(bmi) {
+    return categories.find(c => bmi < c.max);
+  }
+
+  function updateCalculation() {
+    const height = parseFloat(document.getElementById('height').value);
+    const weight = parseFloat(document.getElementById('weight').value);
+
+    document.getElementById('height-display').textContent = height + ' ซม.';
+    document.getElementById('weight-display').textContent = weight + ' กก.';
+
+    const bmi = calculateBMI(height, weight);
+    const category = getCategory(bmi);
+
+    document.getElementById('bmi-value').textContent = bmi.toFixed(1);
+    document.getElementById('bmi-category').textContent = category.label;
+    document.getElementById('bmi-note').textContent = category.note;
+
+    // ตำแหน่ง marker บนแถบสเกล (map ค่า BMI 15-35 เป็น 0-100%)
+    const clampedBmi = Math.max(15, Math.min(35, bmi));
+    const percent = ((clampedBmi - 15) / (35 - 15)) * 100;
+    document.getElementById('gauge-marker').style.left = `calc(${percent}% - 2px)`;
+  }
+
+  function resetCalculator() {
+    document.getElementById('height').value = 170;
+    document.getElementById('weight').value = 65;
+    updateCalculation();
+  }
+
+  ['height', 'weight'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCalculation);
+  });
+
+  updateCalculation();
+</script>
+
+</body>
+</html>

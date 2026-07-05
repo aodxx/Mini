@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏫 ห้องเรียน Interactive Lab - aodxx</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3A32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --board:#1F3A32;
+    --board-2:#274A3D;
+    --paper:#FBF7EF;
+    --paper-2:#F3ECDC;
+    --ink:#17211C;
+    --chalk:#F5F1E6;
+    --chalk-gold:#F0BD4C;
+    --pen-coral:#E2604A;
+    --muted:#7C8B83;
+    --line: rgba(245,241,230,0.16);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    font-family:'IBM Plex Sans Thai','IBM Plex Sans',sans-serif;
+    background: var(--board);
+    color: var(--chalk);
+  }
+  h1,h2,h3, .display{
+    font-family:'Fraunces', serif;
+    letter-spacing: -0.01em;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- chalkboard texture ---------- */
+  .board-texture{
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.03) 0, transparent 40%),
+      radial-gradient(circle at 85% 60%, rgba(255,255,255,0.025) 0, transparent 45%);
+  }
+
+  /* ---------- building sign ---------- */
+  .building-sign{
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--board-2), var(--board));
+  }
+  .chalk-underline{
+    background-image: linear-gradient(90deg, var(--chalk-gold), transparent 85%);
+    height: 3px;
+  }
+
+  /* ---------- door plaque nav ---------- */
+  .plaque{
+    position: relative;
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 14px 18px;
+    cursor:pointer;
+    transition: transform .18s ease, box-shadow .18s ease;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+  .plaque:hover{ transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.25); }
+  .plaque.active{
+    background: var(--chalk-gold);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  }
+  .plaque .room-no{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .plaque.active .room-no{ color: rgba(23,33,28,0.6); }
+  .plaque .light{
+    position:absolute; top:10px; right:10px;
+    width:8px; height:8px; border-radius:50%;
+    background: #9CA89F;
+  }
+  .plaque.active .light{ background: #3E7A4F; box-shadow: 0 0 6px #3E7A4F; }
+
+  /* ---------- room sections ---------- */
+  .room{ display:none; }
+  .room.active{ display:block; animation: riseIn .45s ease; }
+  @keyframes riseIn{ from{ opacity:0; transform: translateY(14px);} to{opacity:1; transform:none;} }
+
+  .paper-panel{
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 14px;
+  }
+
+  /* ---------- learn cards ---------- */
+  .lesson-card{
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 14px;
+    border-left: 6px solid var(--chalk-gold);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .lesson-card:hover{ transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,0,0,0.35); }
+  .lesson-icon{
+    width:56px; height:56px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px;
+  }
+
+  /* ---------- template cards (studio) ---------- */
+  .tpl-card{
+    background: var(--paper); color: var(--ink);
+    border-radius: 14px; overflow:hidden;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .tpl-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 34px rgba(0,0,0,0.4); }
+  .filter-chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    background: transparent;
+    border-radius: 999px;
+    padding: 8px 16px;
+    transition: all .15s ease;
+    cursor:pointer;
+  }
+  .filter-chip:hover{ border-color: var(--chalk-gold); }
+  .filter-chip.active{ background: var(--chalk-gold); color: var(--ink); border-color: var(--chalk-gold); font-weight:600; }
+
+  .fade-in{ animation: fadeIn .5s ease-in; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:none;} }
+
+  .modal{ display:none; position:fixed; inset:0; background:rgba(10,15,12,0.7); z-index:100; backdrop-filter: blur(4px); }
+  .modal.active{ display:flex; align-items:center; justify-content:center; animation: fadeIn .25s; }
+  .modal-content{ max-width:700px; width:92%; max-height:85vh; overflow-y:auto; }
+  .prompt-box{ font-family:'IBM Plex Mono', monospace; font-size:13px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+
+  .star-btn{ transition: all .2s ease; cursor:pointer; }
+  .star-btn:hover{ transform: scale(1.2); }
+  .star-empty{ color:#d8d8d8; }
+  .star-filled{ color: var(--chalk-gold); filter: drop-shadow(0 0 4px rgba(240,189,76,0.6)); }
+  .fav-badge{
+    position:absolute; top:8px; right:8px;
+    background: rgba(240,189,76,0.95); color:#17211C;
+    padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;
+  }
+
+  /* ---------- showcase ---------- */
+  .showcase-card{
+    background: var(--paper); color: var(--ink);
+    border-radius: 14px; overflow:hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .empty-invite{
+    border: 2px dashed var(--line);
+    border-radius: 16px;
+  }
+
+  .install-banner{ display:none; position:fixed; bottom:0; left:0; right:0; background: var(--board-2); color: var(--chalk); padding:1rem; box-shadow: 0 -6px 20px rgba(0,0,0,0.35); z-index:99; border-top: 1px solid var(--line); }
+  .install-banner.show{ display:flex; align-items:center; justify-content:space-between; }
+
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-thumb{ background: rgba(245,241,230,0.2); border-radius:10px; }
+</style>
+</head>
+<body class="board-texture min-h-screen">
+
+<!-- ============ BUILDING SIGN / HERO ============ -->
+<header class="building-sign py-14 px-6">
+  <div class="max-w-5xl mx-auto text-center">
+    <div class="mono text-xs tracking-widest mb-3" style="color:var(--chalk-gold)">โรงเรียนสอนสร้าง INTERACTIVE ด้วย AI</div>
+    <h1 class="display text-4xl md:text-6xl font-bold mb-4">🏫 ห้องเรียน Interactive Lab</h1>
+    <div class="chalk-underline w-24 mx-auto mb-6"></div>
+    <p class="text-lg md:text-xl max-w-2xl mx-auto" style="color:rgba(245,241,230,0.85)">
+      ที่นี่มีสามห้อง: ห้องเรียนสอนหลักการ ห้องศึกษาที่รวม Template ให้หยิบไปต่อยอด และห้องโชว์ผลงานของทุกคน
+      เลือกห้องที่อยากเข้าด้านล่างได้เลย
+    </p>
+  </div>
+</header>
+
+<!-- ============ ROOM NAV (DOOR PLAQUES) ============ -->
+<nav class="max-w-5xl mx-auto px-6 -mt-7 relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3" id="roomNav">
+  <div class="plaque active" data-room="lobby" onclick="showRoom('lobby', this)">
+    <div class="light"></div>
+    <div class="room-no">ชั้น 1 · 100</div>
+    <div class="font-bold">🏠 ล็อบบี้</div>
+  </div>
+  <div class="plaque" data-room="learn" onclick="showRoom('learn', this)">
+    <div class="light"></div>
+    <div class="room-no">ชั้น 1 · 101–105</div>
+    <div class="font-bold">📖 ห้องเรียน</div>
+  </div>
+  <div class="plaque" data-room="studio" onclick="showRoom('studio', this)">
+    <div class="light"></div>
+    <div class="room-no">ชั้น 2 · 201–205</div>
+    <div class="font-bold">🎨 ห้องศึกษา Template</div>
+  </div>
+  <div class="plaque" data-room="showcase" onclick="showRoom('showcase', this)">
+    <div class="light"></div>
+    <div class="room-no">ชั้น 3 · 301</div>
+    <div class="font-bold">🏆 ห้องโชว์ผลงาน</div>
+  </div>
+</nav>
+
+<main class="max-w-5xl mx-auto px-6 py-10">
+
+  <!-- ============ ROOM: LOBBY ============ -->
+  <section id="room-lobby" class="room active">
+    <div class="grid md:grid-cols-4 gap-4 mb-10">
+      <div class="paper-panel p-5 text-center">
+        <div class="text-3xl font-bold" style="color:var(--pen-coral)">5</div>
+        <div class="text-sm" style="color:var(--muted)">บทเรียน</div>
+      </div>
+      <div class="paper-panel p-5 text-center">
+        <div class="text-3xl font-bold" style="color:var(--pen-coral)">14</div>
+        <div class="text-sm" style="color:var(--muted)">Template</div>
+      </div>
+      <div class="paper-panel p-5 text-center">
+        <div class="text-3xl font-bold" style="color:var(--pen-coral)" id="favCountLobby">0</div>
+        <div class="text-sm" style="color:var(--muted)">⭐ ที่ติดดาว</div>
+      </div>
+      <div class="paper-panel p-5 text-center">
+        <div class="text-3xl font-bold" style="color:var(--pen-coral)" id="showcaseCountLobby">0</div>
+        <div class="text-sm" style="color:var(--muted)">ผลงานในห้องโชว์</div>
+      </div>
+    </div>
+
+    <div class="paper-panel p-8 mb-8">
+      <h2 class="display text-2xl font-bold mb-3">เริ่มตรงไหนดี?</h2>
+      <p class="mb-5" style="color:var(--muted)">ถ้ายังไม่รู้ว่า Interactive Component คืออะไร ให้เริ่มที่ห้องเรียนก่อน ถ้ารู้แล้วและอยากได้ Prompt ไปสร้างเลย ข้ามไปห้องศึกษาได้ทันที</p>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="showRoom('learn', document.querySelector('[data-room=learn]'))" class="px-5 py-3 rounded-lg font-semibold" style="background:var(--chalk-gold); color:var(--ink)">📖 เข้าห้องเรียน</button>
+        <button onclick="showRoom('studio', document.querySelector('[data-room=studio]'))" class="px-5 py-3 rounded-lg font-semibold border" style="border-color:var(--line); color:var(--chalk)">🎨 ดู Template ทั้งหมด</button>
+      </div>
+    </div>
+
+    <div class="paper-panel p-8">
+      <h3 class="display text-xl font-bold mb-2">🔗 ผลงานล่าสุดในห้องโชว์</h3>
+      <div id="lobbyShowcasePreview" class="grid md:grid-cols-3 gap-4 mt-4"></div>
+    </div>
+  </section>
+
+  <!-- ============ ROOM: LEARN ============ -->
+  <section id="room-learn" class="room">
+    <div class="mb-8">
+      <div class="mono text-xs mb-2" style="color:var(--chalk-gold)">ชั้น 1 · ห้อง 101–105</div>
+      <h2 class="display text-3xl font-bold mb-2">ห้องเรียน: Interactive คืออะไร</h2>
+      <p style="color:rgba(245,241,230,0.8)">Interactive Component คือชิ้นส่วนหน้าจอที่ "ตอบสนอง" เมื่อผู้ใช้คลิก ลาก หรือพิมพ์ — ต่างจากหน้าเว็บนิ่งๆ ที่มีแต่ข้อความกับรูป ในห้องนี้แบ่งตามลักษณะการใช้งานเป็น 5 ห้องย่อย แต่ละห้องมี Template ของตัวเองอยู่ในห้องศึกษา (ชั้น 2)</p>
+    </div>
+
+    <!-- 🧠 AI LESSON BUILDER -->
+    <div class="paper-panel p-6 mb-6" id="aiLessonBuilder">
+      <h3 class="font-bold text-lg mb-1">🧠 สร้างบทเรียนใหม่ด้วย AI</h3>
+      <p class="text-sm mb-4" style="color:var(--muted)">ป้อนหัวข้อ หรือวางเนื้อหา/เอกสารที่อยากให้แตกเป็นบทเรียน 9 ขั้น ระบบจะส่งให้ Gemini ช่วยแตกโครงสร้างให้อัตโนมัติ</p>
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <input id="lessonTopicInput" type="text" placeholder="หัวข้อ เช่น Google Apps Script คืออะไร" class="px-4 py-2 rounded-lg border border-gray-300 outline-none">
+        <select id="lessonCategorySelect" class="px-4 py-2 rounded-lg border border-gray-300 outline-none">
+          <option value="programming">Programming</option>
+          <option value="ai">AI</option>
+          <option value="automation">Automation</option>
+          <option value="gas">Google Apps Script</option>
+          <option value="webdev">Web Development</option>
+          <option value="cloud">Cloud</option>
+          <option value="database">Database</option>
+          <option value="api">API</option>
+          <option value="algorithm">Algorithm</option>
+          <option value="uxui">UX/UI</option>
+          <option value="gamedev">Game Development</option>
+          <option value="arvr">AR/VR</option>
+          <option value="dataviz">Data Visualization</option>
+        </select>
+      </div>
+      <textarea id="lessonSourceInput" placeholder="(ไม่บังคับ) วางเนื้อหา/เอกสารที่อยากให้ใช้อ้างอิง" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none mb-4" rows="4"></textarea>
+      <button onclick="generateLesson()" id="generateLessonBtn" class="px-5 py-3 rounded-lg font-semibold" style="background:var(--chalk-gold); color:var(--ink)">
+        ⚡ แปลงเป็นบทเรียน 9 ขั้น
+      </button>
+      <div id="lessonGenStatus" class="text-sm mt-3 hidden"></div>
+    </div>
+
+    <div id="aiLessonResult" class="hidden mb-10"></div>
+
+    <div class="mb-4" id="savedLessonsHeader" style="display:none">
+      <h3 class="display text-xl font-bold mb-1">📚 บทเรียนที่เคยสร้างไว้</h3>
+      <p class="text-sm" style="color:rgba(245,241,230,0.7)">ดึงมาจากชีต GeneratedLessons ของคุณ</p>
+    </div>
+    <div id="savedLessonsGrid" class="grid md:grid-cols-2 gap-5 mb-12"></div>
+
+    <div class="mb-4">
+      <h3 class="display text-xl font-bold mb-1">📖 บทเรียนพื้นฐาน (Preset)</h3>
+      <p class="text-sm" style="color:rgba(245,241,230,0.7)">5 หมวดหลักที่มีอยู่แล้วในระบบ พร้อมตำราเรียนให้หยิบไปปรับ</p>
+    </div>
+    <div class="grid md:grid-cols-2 gap-5" id="lessonGrid">
+      <!-- lesson cards injected by JS but static fallback below for no-JS -->
+    </div>
+  </section>
+
+  <!-- ============ ROOM: STUDIO (TEMPLATES) ============ -->
+  <section id="room-studio" class="room">
+    <div class="mb-6">
+      <div class="mono text-xs mb-2" style="color:var(--chalk-gold)">ชั้น 2 · ห้อง 201–205</div>
+      <h2 class="display text-3xl font-bold mb-2">ห้องศึกษา: หยิบ Template ไปต่อ</h2>
+      <p style="color:rgba(245,241,230,0.8)">กด "เล่น" เพื่อดูตัวอย่างจริง หรือกด "Prompt" เพื่อคัดลอกไปวางใน Claude / Gemini / ChatGPT แล้วให้ AI สร้างให้ทันที</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-8" id="filterBar">
+      <button onclick="filterCards('all', this)" class="filter-chip active">🌟 ทั้งหมด</button>
+      <button onclick="filterCards('favorites', this)" class="filter-chip">⭐ ติดดาว</button>
+      <button onclick="filterCards('navigation', this)" class="filter-chip">201 · Navigation</button>
+      <button onclick="filterCards('dataviz', this)" class="filter-chip">202 · Data Viz</button>
+      <button onclick="filterCards('relationship', this)" class="filter-chip">203 · Relationship</button>
+      <button onclick="filterCards('simulation', this)" class="filter-chip">204 · Simulation</button>
+      <button onclick="filterCards('calculator', this)" class="filter-chip">205 · Calculator</button>
+    </div>
+
+    <div id="cardsGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    <div id="emptyFavState" class="hidden text-center py-16 empty-invite">
+      <div class="text-6xl mb-4">⭐</div>
+      <h3 class="display text-2xl font-bold mb-2">ยังไม่มี Template ที่ติดดาว</h3>
+      <p style="color:rgba(245,241,230,0.7)">กดดาว ⭐ มุมขวาบนของการ์ดที่ชอบ เพื่อเก็บไว้ดูภายหลัง</p>
+    </div>
+  </section>
+
+  <!-- ============ ROOM: SHOWCASE ============ -->
+  <section id="room-showcase" class="room">
+    <div class="mb-6">
+      <div class="mono text-xs mb-2" style="color:var(--chalk-gold)">ชั้น 3 · ห้อง 301</div>
+      <h2 class="display text-3xl font-bold mb-2">ห้องโชว์ผลงาน</h2>
+      <p style="color:rgba(245,241,230,0.8)">สร้างอะไรจาก Template ในห้องศึกษาแล้ว เอามาแปะโชว์ที่นี่ได้เลย
+        <span class="mono text-xs block mt-1" style="color:var(--muted)">* ข้อมูลเก็บไว้ในเบราว์เซอร์นี้เท่านั้น (localStorage) ยังไม่ได้เชื่อมฐานข้อมูลกลาง</span>
+      </p>
+    </div>
+
+    <div class="paper-panel p-6 mb-8">
+      <h3 class="font-bold mb-4">➕ แปะผลงานใหม่</h3>
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <input id="scTitle" type="text" placeholder="ชื่อผลงาน" class="px-4 py-2 rounded-lg border border-gray-300 outline-none">
+        <input id="scAuthor" type="text" placeholder="ชื่อผู้สร้าง (ไม่บังคับ)" class="px-4 py-2 rounded-lg border border-gray-300 outline-none">
+        <input id="scUrl" type="text" placeholder="ลิงก์ไปยังผลงาน (URL)" class="px-4 py-2 rounded-lg border border-gray-300 outline-none md:col-span-2">
+        <textarea id="scDesc" placeholder="เล่าสั้นๆ ว่าผลงานนี้ทำอะไร" class="px-4 py-2 rounded-lg border border-gray-300 outline-none md:col-span-2" rows="2"></textarea>
+      </div>
+      <button onclick="addShowcaseItem()" class="px-5 py-3 rounded-lg font-semibold" style="background:var(--pen-coral); color:#fff">📌 เพิ่มลงห้องโชว์</button>
+    </div>
+
+    <div id="showcaseGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    <div id="emptyShowcaseState" class="hidden text-center py-16 empty-invite">
+      <div class="text-6xl mb-4">🏆</div>
+      <h3 class="display text-2xl font-bold mb-2">ห้องนี้ยังว่างอยู่</h3>
+      <p style="color:rgba(245,241,230,0.7)">เป็นคนแรกที่แปะผลงาน — สร้างอะไรจาก Template สักชิ้น แล้วเอามาโชว์ตรงนี้</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ MODAL: Dynamic Prompt Generator ============ -->
+<div id="dynamicPromptModal" class="modal" onclick="if(event.target===this)closeDynamicModal()">
+  <div class="modal-content paper-panel shadow-2xl">
+    <div class="text-white p-5 flex justify-between items-start" style="background:linear-gradient(120deg,#2C5F4C,#1F3A32); border-radius:14px 14px 0 0;">
+      <div>
+        <div class="mono text-xs opacity-80 mb-1">203 · RELATIONSHIP</div>
+        <h3 class="display text-2xl font-bold">สร้าง Prompt แบบไดนามิก</h3>
+      </div>
+      <button onclick="closeDynamicModal()" class="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center text-xl">✕</button>
+    </div>
+    <div class="p-6">
+      <div class="mb-4">
+        <label class="block font-semibold mb-2">1️⃣ ชื่อโหนดหลัก (Main Node):</label>
+        <input type="text" id="mainNodeInput" placeholder="เช่น: บริษัทแม่, โครงสร้างโปรเจกต์" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none">
+      </div>
+      <div class="mb-4">
+        <label class="block font-semibold mb-2">2️⃣ ข้อมูลโหนดลูก (Child Nodes) - คั่นด้วยจุลภาค:</label>
+        <input type="text" id="childNodesInput" placeholder="เช่น: แผนกบัญชี, แผนกไอที, แผนกการตลาด" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none">
+      </div>
+      <div class="mb-4">
+        <label class="block font-semibold mb-2">3️⃣ ประเภทกราฟ:</label>
+        <select id="graphTypeSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none">
+          <option value="orgchart">🏢 Org Chart (โครงสร้างองค์กร)</option>
+          <option value="mindmap">🧠 Mindmap (ผังความคิด)</option>
+          <option value="flowchart">🔀 Flowchart (แผนผังกระบวนการ)</option>
+          <option value="network">🕸️ Network Graph (เครือข่าย)</option>
+        </select>
+      </div>
+      <button onclick="generateDynamicPrompt()" class="w-full py-3 rounded-lg font-bold mb-4" style="background:var(--chalk-gold); color:var(--ink)">
+        ⚡ สร้าง Prompt ทันที
+      </button>
+      <div id="dynamicPromptResult" class="hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold">📝 ผลลัพธ์ Prompt:</h4>
+          <button onclick="copyDynamicPrompt()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:var(--pen-coral)">📋 คัดลอก</button>
+        </div>
+        <div id="dynamicPromptText" class="prompt-box bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: ตำราเรียน (Textbook) ============ -->
+<div id="textbookModal" class="modal" onclick="if(event.target===this)closeTextbook()">
+  <div class="modal-content paper-panel shadow-2xl">
+    <div class="text-white p-5 flex justify-between items-start" style="background:linear-gradient(120deg,#1F3A32,#2C5F4C); border-radius:14px 14px 0 0;">
+      <div>
+        <div id="textbookRoom" class="mono text-xs opacity-80 mb-1">ห้อง 10X</div>
+        <h3 id="textbookTitle" class="display text-2xl font-bold">📘 ตำราเรียน</h3>
+      </div>
+      <button onclick="closeTextbook()" class="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center text-xl">✕</button>
+    </div>
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-bold">📖 เนื้อหาตำรา — หยิบไปปรับต่อได้เลย</h4>
+        <button onclick="copyTextbook()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:var(--pen-coral)">📋 คัดลอกตำรา</button>
+      </div>
+      <div id="textbookBody" class="prompt-box bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-[60vh] overflow-y-auto"></div>
+      <div class="mt-4 p-3 rounded-lg text-sm" style="background:#EFF6F1; color:#1F3A32">
+        💡 <b>วิธีใช้:</b> คัดลอกไปแก้ชื่อ/ตัวอย่าง/ระดับความยากให้เข้ากับคนเรียนของคุณ แล้วเอาไปสอนต่อ หรือวางต่อท้าย Prompt ในห้องศึกษาเพื่อขอให้ AI ทำสื่อประกอบให้ด้วย
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: View Standard Template Prompt ============ -->
+<div id="promptModal" class="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content paper-panel shadow-2xl">
+    <div class="text-white p-5 flex justify-between items-start" style="background:linear-gradient(120deg,#1F3A32,#2C5F4C); border-radius:14px 14px 0 0;">
+      <div>
+        <div id="modalCategory" class="mono text-xs opacity-80 mb-1">CATEGORY</div>
+        <h3 id="modalTitle" class="display text-2xl font-bold">Title</h3>
+      </div>
+      <button onclick="closeModal()" class="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center text-xl">✕</button>
+    </div>
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-bold">📝 Template Prompt</h4>
+        <button onclick="copyPrompt()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:var(--pen-coral)">📋 คัดลอก Prompt</button>
+      </div>
+      <div id="modalPrompt" class="prompt-box bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto"></div>
+      <div class="mt-4 p-3 rounded-lg text-sm" style="background:#EFF6F1; color:#1F3A32">
+        💡 <b>วิธีใช้:</b> คัดลอก Prompt นี้ไปวางใน Claude (Artifacts), Gemini (Canvas), ChatGPT (Canvas) หรือ AI Studio
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="max-w-5xl mx-auto px-6 py-12 text-center mb-16">
+  <div class="paper-panel p-8">
+    <h3 class="display text-2xl font-bold mb-3">🚀 พร้อมเริ่มเรียนแล้ว!</h3>
+    <p class="mb-4" style="color:var(--muted)">เดินดูทีละห้องได้ตามสบาย ไม่มีลำดับตายตัว</p>
+    <div class="flex flex-wrap justify-center gap-4 text-sm">
+      <a href="https://github.com/aodxx/app-script-90" target="_blank" class="hover:underline" style="color:var(--pen-coral)">📂 GitHub Repository</a>
+      <span style="color:var(--muted)">•</span>
+      <span style="color:var(--muted)">สร้างด้วย ❤️ และ AI</span>
+    </div>
+  </div>
+  <p class="text-sm mt-6" style="color:var(--muted)">© 2026 aodxx - ห้องเรียน Interactive Lab</p>
+</footer>
+
+<!-- ============ PWA INSTALL BANNER ============ -->
+<div id="installBanner" class="install-banner">
+  <div class="flex items-center gap-3">
+    <div class="text-3xl">📱</div>
+    <div>
+      <div class="font-bold">ติดตั้งแอปห้องเรียน Interactive Lab</div>
+      <div class="text-sm opacity-80">ใช้งานแบบเต็มหน้าจอ รวดเร็ว ไม่ต้องออนไลน์</div>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="installApp()" class="px-4 py-2 rounded-lg font-semibold" style="background:var(--chalk-gold); color:var(--ink)">ติดตั้ง</button>
+    <button onclick="dismissBanner()" class="bg-white/10 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/20 transition">ภายหลัง</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

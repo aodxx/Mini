@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabs: ประเภทของ AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .fade-in { animation: fadeIn 0.35s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-2xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🗂️ ประเภทของ AI</h1>
+    <p class="text-slate-500 mt-1">คลิกแท็บเพื่อดูรายละเอียดของ AI แต่ละประเภท</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+
+    <!-- Tab bar -->
+    <div class="relative flex overflow-x-auto border-b border-slate-100 mb-6" id="tab-bar"></div>
+
+    <!-- เนื้อหาของแท็บ -->
+    <div id="tab-content" class="fade-in min-h-[220px]"></div>
+
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูลแท็บ (แยกจาก UI logic) =====
+  const tabs = [
+    {
+      icon: "🤖",
+      label: "Machine Learning",
+      title: "Machine Learning (การเรียนรู้ของเครื่อง)",
+      description: "สาขาของ AI ที่ให้คอมพิวเตอร์เรียนรู้รูปแบบจากข้อมูล แทนการเขียนกฎตายตัวทุกกรณี เหมาะกับงานที่มีข้อมูลจำนวนมากแต่ยากจะกำหนดกฎเองทั้งหมด",
+      examples: ["ระบบแนะนำสินค้า", "การพยากรณ์ยอดขาย", "ตรวจจับอีเมลสแปม"]
+    },
+    {
+      icon: "🧠",
+      label: "Deep Learning",
+      title: "Deep Learning (การเรียนรู้เชิงลึก)",
+      description: "เทคนิค Machine Learning ที่ใช้ Neural Network หลายชั้นซ้อนกัน ทำให้เรียนรู้รูปแบบข้อมูลที่ซับซ้อนได้ดี เช่น ภาพและเสียง",
+      examples: ["จดจำใบหน้า", "แปลภาษาอัตโนมัติ", "รถยนต์ขับเคลื่อนอัตโนมัติ"]
+    },
+    {
+      icon: "💬",
+      label: "NLP",
+      title: "Natural Language Processing (การประมวลผลภาษาธรรมชาติ)",
+      description: "สาขาที่เน้นให้คอมพิวเตอร์เข้าใจ วิเคราะห์ และสร้างภาษามนุษย์ ทั้งข้อความและคำพูด",
+      examples: ["แชทบอท", "การแปลภาษา", "สรุปเนื้อหาอัตโนมัติ"]
+    },
+    {
+      icon: "👁️",
+      label: "Computer Vision",
+      title: "Computer Vision (การมองเห็นของคอมพิวเตอร์)",
+      description: "สาขาที่ให้คอมพิวเตอร์ตีความและเข้าใจข้อมูลภาพ ทั้งภาพนิ่งและวิดีโอ",
+      examples: ["ระบบสแกนใบหน้า", "ตรวจจับวัตถุในภาพ", "วิเคราะห์ภาพทางการแพทย์"]
+    },
+    {
+      icon: "🎨",
+      label: "Generative AI",
+      title: "Generative AI (AI เชิงสร้างสรรค์)",
+      description: "AI ที่สามารถสร้างเนื้อหาใหม่ขึ้นมา เช่น ข้อความ รูปภาพ เสียง หรือวิดีโอ โดยอ้างอิงจากรูปแบบที่เรียนรู้มา",
+      examples: ["สร้างภาพจากคำบรรยาย", "เขียนบทความอัตโนมัติ", "สร้างเสียงพากย์เสมือนจริง"]
+    }
+  ];
+
+  let currentTab = 0;
+
+  function renderTabBar() {
+    const bar = document.getElementById('tab-bar');
+    bar.innerHTML = '';
+    tabs.forEach((tab, idx) => {
+      const btn = document.createElement('button');
+      btn.className = `shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition ${
+        idx === currentTab ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 border-b-2 border-transparent hover:text-slate-600'
+      }`;
+      btn.textContent = `${tab.icon} ${tab.label}`;
+      btn.onclick = () => selectTab(idx);
+      bar.appendChild(btn);
+    });
+  }
+
+  function renderTabContent() {
+    const tab = tabs[currentTab];
+    const contentEl = document.getElementById('tab-content');
+    contentEl.classList.remove('fade-in');
+    void contentEl.offsetWidth; // trigger reflow เพื่อให้ animation เล่นใหม่ทุกครั้ง
+    contentEl.classList.add('fade-in');
+
+    contentEl.innerHTML = `
+      <h2 class="text-xl font-bold text-slate-800 mb-3">${tab.title}</h2>
+      <p class="text-slate-600 leading-relaxed mb-5">${tab.description}</p>
+      <div class="bg-indigo-50 rounded-xl p-4">
+        <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-2">ตัวอย่างการใช้งาน</p>
+        <ul class="space-y-1.5">
+          ${tab.examples.map(ex => `<li class="text-sm text-slate-700 flex items-center gap-2"><span class="text-indigo-400">•</span>${ex}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  function selectTab(idx) {
+    currentTab = idx;
+    renderTabBar();
+    renderTabContent();
+  }
+
+  // เริ่มต้นแสดงแท็บแรก
+  renderTabBar();
+  renderTabContent();
+</script>
+
+</body>
+</html>

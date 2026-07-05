@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards: คำศัพท์ AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+
+  /* ===== 3D Flip Card ===== */
+  .card-scene { perspective: 1200px; }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  .card-inner.flipped { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+  .card-back { transform: rotateY(180deg); }
+  .stack-shadow-1 { position: absolute; inset: 0; transform: translateY(10px) scale(0.96); z-index: -1; }
+  .stack-shadow-2 { position: absolute; inset: 0; transform: translateY(20px) scale(0.92); z-index: -2; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-md">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🃏 Flashcards: คำศัพท์ AI</h1>
+    <p class="text-slate-500 mt-1">คลิกที่การ์ดเพื่อพลิกดูคำอธิบาย</p>
+  </div>
+
+  <!-- ตัวนับ + progress -->
+  <div class="flex justify-between items-center mb-3 text-sm text-slate-500 px-1">
+    <span id="card-counter">การ์ด 1 / 10</span>
+    <span id="known-counter">จำได้แล้ว: 0</span>
+  </div>
+  <div class="w-full bg-slate-100 rounded-full h-2 mb-6">
+    <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style="width: 10%"></div>
+  </div>
+
+  <!-- การ์ด -->
+  <div class="relative h-72 mb-6">
+    <div class="stack-shadow-2 bg-indigo-100 rounded-2xl"></div>
+    <div class="stack-shadow-1 bg-indigo-200 rounded-2xl"></div>
+    <div class="card-scene w-full h-full cursor-pointer" onclick="flipCard()">
+      <div id="card-inner" class="card-inner">
+        <!-- หน้าคำศัพท์ -->
+        <div class="card-face bg-white shadow-xl border-2 border-indigo-100">
+          <span class="text-xs font-medium text-indigo-400 uppercase tracking-wide mb-3">คำศัพท์</span>
+          <h2 id="term-text" class="text-2xl font-bold text-slate-800"></h2>
+          <p class="text-slate-400 text-sm mt-4">👆 คลิกเพื่อดูคำอธิบาย</p>
+        </div>
+        <!-- หน้าคำอธิบาย -->
+        <div class="card-face card-back bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl">
+          <span class="text-xs font-medium text-indigo-200 uppercase tracking-wide mb-3">ความหมาย</span>
+          <p id="definition-text" class="text-base leading-relaxed"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ปุ่มควบคุม -->
+  <div class="flex items-center justify-between gap-3">
+    <button onclick="prevCard()" class="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-medium px-4 py-3 rounded-xl hover:border-indigo-300 transition">
+      ← ก่อนหน้า
+    </button>
+    <button onclick="markKnown()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-3 rounded-xl shadow-lg shadow-emerald-100 transition">
+      ✓ จำได้แล้ว
+    </button>
+    <button onclick="nextCard()" class="flex-1 bg-white border-2 border-slate-200 text-slate-600 font-medium px-4 py-3 rounded-xl hover:border-indigo-300 transition">
+      ถัดไป →
+    </button>
+  </div>
+
+  <div class="text-center mt-4">
+    <button onclick="resetCards()" class="text-sm text-slate-400 hover:text-indigo-500 transition">🔄 เริ่มใหม่ทั้งหมด</button>
+  </div>
+
+</div>
+
+<script>
+  // ===== ข้อมูลคำศัพท์ (แยกจาก UI logic) =====
+  const cards = [
+    { term: "Artificial Intelligence (AI)", definition: "ปัญญาประดิษฐ์ — ระบบคอมพิวเตอร์ที่ถูกออกแบบให้ทำงานที่ต้องใช้ความฉลาดคล้ายมนุษย์ เช่น การเข้าใจภาษา การมองเห็น หรือการตัดสินใจ" },
+    { term: "Machine Learning (ML)", definition: "การเรียนรู้ของเครื่อง — สาขาหนึ่งของ AI ที่ให้ระบบเรียนรู้รูปแบบจากข้อมูลโดยไม่ต้องเขียนกฎตายตัวทุกกรณี" },
+    { term: "Neural Network", definition: "โครงข่ายประสาทเทียม — โครงสร้างการคำนวณที่จำลองการทำงานของเซลล์ประสาทในสมอง ใช้เป็นพื้นฐานของ Deep Learning" },
+    { term: "Deep Learning", definition: "การเรียนรู้เชิงลึก — เทคนิค Machine Learning ที่ใช้ Neural Network หลายชั้น เพื่อเรียนรู้รูปแบบข้อมูลที่ซับซ้อน" },
+    { term: "Training Data", definition: "ข้อมูลฝึกสอน — ชุดข้อมูลจำนวนมากที่ใช้สอนโมเดลให้เรียนรู้รูปแบบและความสัมพันธ์ต่างๆ" },
+    { term: "Large Language Model (LLM)", definition: "โมเดลภาษาขนาดใหญ่ — ระบบ AI ที่ฝึกจากข้อความจำนวนมหาศาล เพื่อเข้าใจและสร้างภาษาธรรมชาติ เช่น GPT, Claude" },
+    { term: "Prompt Engineering", definition: "วิศวกรรมพรอมป์ — ทักษะการออกแบบคำสั่งหรือคำถามเพื่อให้ AI ให้ผลลัพธ์ที่ต้องการอย่างแม่นยำ" },
+    { term: "Overfitting", definition: "ภาวะเรียนรู้เกิน — โมเดลจดจำรายละเอียดของข้อมูลฝึกสอนมากเกินไป จนทำนายข้อมูลใหม่ได้แย่ลง" },
+    { term: "Generative AI", definition: "AI เชิงสร้างสรรค์ — AI ที่สามารถสร้างเนื้อหาใหม่ เช่น ข้อความ รูปภาพ เสียง หรือวิดีโอ" },
+    { term: "AI Hallucination", definition: "อาการหลอนของ AI — ปรากฏการณ์ที่โมเดลสร้างคำตอบที่ฟังดูมั่นใจแต่ผิดพลาดหรือไม่มีอยู่จริง ควรตรวจสอบข้อมูลสำคัญเสมอ" }
+  ];
+
+  // ===== State =====
+  let currentIndex = 0;
+  let isFlipped = false;
+  let knownCount = 0;
+  let knownSet = new Set();
+
+  function renderCard() {
+    const card = cards[currentIndex];
+    document.getElementById('term-text').textContent = card.term;
+    document.getElementById('definition-text').textContent = card.definition;
+    document.getElementById('card-counter').textContent = `การ์ด ${currentIndex + 1} / ${cards.length}`;
+    document.getElementById('known-counter').textContent = `จำได้แล้ว: ${knownCount}`;
+    document.getElementById('progress-bar').style.width = `${((currentIndex + 1) / cards.length) * 100}%`;
+
+    // รีเซ็ตด้านการ์ดกลับเป็นด้านหน้าเสมอเมื่อเปลี่ยนการ์ด
+    isFlipped = false;
+    document.getElementById('card-inner').classList.remove('flipped');
+  }
+
+  function flipCard() {
+    isFlipped = !isFlipped;
+    document.getElementById('card-inner').classList.toggle('flipped', isFlipped);
+  }
+
+  function nextCard() {
+    currentIndex = (currentIndex + 1) % cards.length;
+    renderCard();
+  }
+
+  function prevCard() {
+    currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+    renderCard();
+  }
+
+  function markKnown() {
+    if (!knownSet.has(currentIndex)) {
+      knownSet.add(currentIndex);
+      knownCount++;
+    }
+    nextCard();
+  }
+
+  function resetCards() {
+    currentIndex = 0;
+    knownCount = 0;
+    knownSet = new Set();
+    renderCard();
+  }
+
+  // เริ่มต้นแสดงการ์ดแรก
+  renderCard();
+</script>
+
+</body>
+</html>

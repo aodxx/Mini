@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mindmap: โครงสร้างของ AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .node circle { cursor: pointer; transition: r 0.2s ease; }
+  .node:hover circle { filter: brightness(1.1); }
+  .node text { pointer-events: none; font-size: 12px; }
+  .link { fill: none; stroke: #c7d2fe; stroke-width: 2px; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-4xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🕸️ โครงสร้างของ AI</h1>
+    <p class="text-slate-500 mt-1">คลิกที่วงกลมเพื่อดูรายละเอียด • ลากเพื่อเลื่อน • scroll เพื่อซูม</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-4 md:p-6">
+    <div class="grid md:grid-cols-3 gap-4">
+
+      <!-- พื้นที่วาดแผนผัง -->
+      <div class="md:col-span-2 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
+        <svg id="mindmap-svg" width="100%" height="440"></svg>
+      </div>
+
+      <!-- แผงรายละเอียด -->
+      <div class="bg-indigo-50 rounded-xl p-5" id="detail-panel">
+        <p class="text-indigo-400 text-sm">👈 คลิกที่โหนดในแผนผังเพื่อดูรายละเอียดที่นี่</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ===== ข้อมูลโครงสร้าง (แยกจาก UI logic) =====
+  const data = {
+    name: "AI",
+    detail: "ปัญญาประดิษฐ์ — ศาสตร์ที่ทำให้คอมพิวเตอร์แสดงพฤติกรรมอันชาญฉลาดคล้ายมนุษย์",
+    children: [
+      {
+        name: "Machine Learning",
+        detail: "การให้คอมพิวเตอร์เรียนรู้รูปแบบจากข้อมูลโดยไม่ต้องเขียนกฎตายตัว",
+        children: [
+          { name: "Supervised Learning", detail: "เรียนรู้จากข้อมูลที่มีคำตอบกำกับไว้แล้ว เช่น การจำแนกอีเมลสแปม" },
+          { name: "Unsupervised Learning", detail: "เรียนรู้รูปแบบจากข้อมูลที่ไม่มีคำตอบกำกับ เช่น การจัดกลุ่มลูกค้า" },
+          { name: "Reinforcement Learning", detail: "เรียนรู้จากการลองผิดลองถูกและรับรางวัล เช่น AI เล่นเกม" }
+        ]
+      },
+      {
+        name: "Deep Learning",
+        detail: "เทคนิคที่ใช้ Neural Network หลายชั้นเพื่อเรียนรู้รูปแบบข้อมูลที่ซับซ้อน",
+        children: [
+          { name: "CNN", detail: "Convolutional Neural Network — เหมาะกับการประมวลผลภาพ" },
+          { name: "RNN/LSTM", detail: "เหมาะกับข้อมูลลำดับเวลา เช่น ข้อความหรือเสียง" },
+          { name: "Transformer", detail: "สถาปัตยกรรมเบื้องหลัง LLM อย่าง GPT และ Claude" }
+        ]
+      },
+      {
+        name: "NLP",
+        detail: "Natural Language Processing — การให้คอมพิวเตอร์เข้าใจและสร้างภาษามนุษย์",
+        children: [
+          { name: "แชทบอท", detail: "ระบบสนทนาโต้ตอบกับผู้ใช้ด้วยภาษาธรรมชาติ" },
+          { name: "การแปลภาษา", detail: "แปลข้อความจากภาษาหนึ่งไปอีกภาษาหนึ่งโดยอัตโนมัติ" }
+        ]
+      },
+      {
+        name: "Computer Vision",
+        detail: "การให้คอมพิวเตอร์ตีความและเข้าใจข้อมูลภาพ",
+        children: [
+          { name: "จดจำใบหน้า", detail: "ระบุตัวตนบุคคลจากภาพใบหน้า" },
+          { name: "ตรวจจับวัตถุ", detail: "ระบุตำแหน่งและประเภทของวัตถุในภาพหรือวิดีโอ" }
+        ]
+      }
+    ]
+  };
+
+  const width = document.getElementById('mindmap-svg').clientWidth || 600;
+  const height = 440;
+
+  const svg = d3.select('#mindmap-svg')
+    .attr('viewBox', [0, 0, width, height]);
+
+  const g = svg.append('g');
+
+  // รองรับการซูมและลาก
+  svg.call(d3.zoom().scaleExtent([0.5, 2.5]).on('zoom', (event) => {
+    g.attr('transform', event.transform);
+  }));
+
+  // ===== แปลงข้อมูลเป็นโครงสร้างต้นไม้แนวนอน =====
+  const root = d3.hierarchy(data);
+  const treeLayout = d3.tree().size([height - 60, width - 220]);
+  treeLayout(root);
+
+  const colorByDepth = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd'];
+
+  // เส้นเชื่อมระหว่างโหนด
+  g.selectAll('.link')
+    .data(root.links())
+    .join('path')
+    .attr('class', 'link')
+    .attr('d', d3.linkHorizontal().x(d => d.y + 60).y(d => d.x + 30));
+
+  // กลุ่มโหนด
+  const node = g.selectAll('.node')
+    .data(root.descendants())
+    .join('g')
+    .attr('class', 'node')
+    .attr('transform', d => `translate(${d.y + 60}, ${d.x + 30})`)
+    .on('click', (event, d) => showDetail(d.data));
+
+  node.append('circle')
+    .attr('r', d => d.depth === 0 ? 22 : d.depth === 1 ? 16 : 11)
+    .attr('fill', d => colorByDepth[Math.min(d.depth, colorByDepth.length - 1)]);
+
+  node.append('text')
+    .attr('dy', d => d.depth === 0 ? 38 : d.depth === 1 ? 30 : 24)
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#334155')
+    .attr('font-weight', d => d.depth === 0 ? 'bold' : 'normal')
+    .text(d => d.data.name);
+
+  // ===== แสดงรายละเอียดเมื่อคลิกโหนด =====
+  function showDetail(nodeData) {
+    const panel = document.getElementById('detail-panel');
+    panel.innerHTML = `
+      <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-2">รายละเอียด</p>
+      <h3 class="text-lg font-bold text-slate-800 mb-2">${nodeData.name}</h3>
+      <p class="text-sm text-slate-600 leading-relaxed">${nodeData.detail}</p>
+    `;
+  }
+
+  // เริ่มต้นแสดงรายละเอียดของ root
+  showDetail(data);
+</script>
+
+</body>
+</html>

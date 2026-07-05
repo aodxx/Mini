@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Graph: เครือข่ายเทคโนโลยี AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .node circle { cursor: grab; }
+  .node circle:active { cursor: grabbing; }
+  .node text { pointer-events: none; font-size: 11px; font-weight: 600; }
+  .link { stroke: #c7d2fe; stroke-width: 1.5px; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-4xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🕸️ เครือข่ายเทคโนโลยี AI</h1>
+    <p class="text-slate-500 mt-1">ลากโหนดเพื่อจัดตำแหน่ง • คลิกเพื่อดูรายละเอียด • scroll เพื่อซูม</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-4 md:p-6">
+    <div class="grid md:grid-cols-3 gap-4">
+
+      <div class="md:col-span-2 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
+        <svg id="network-svg" width="100%" height="440"></svg>
+      </div>
+
+      <div class="bg-indigo-50 rounded-xl p-5" id="detail-panel">
+        <p class="text-indigo-400 text-sm">👈 คลิกที่โหนดในกราฟเพื่อดูรายละเอียดที่นี่</p>
+      </div>
+
+    </div>
+
+    <!-- คำอธิบายสี -->
+    <div class="flex flex-wrap gap-4 justify-center mt-5 text-xs text-slate-500">
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#6366f1"></span>แนวคิดหลัก</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#a855f7"></span>เทคนิค</span>
+      <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#f97316"></span>เครื่องมือ/ผลิตภัณฑ์</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูลโหนดและความสัมพันธ์ (แยกจาก UI logic) =====
+  const nodes = [
+    { id: "AI", group: "core", detail: "ปัญญาประดิษฐ์ — ศาสตร์การสร้างระบบที่แสดงพฤติกรรมชาญฉลาด" },
+    { id: "Machine Learning", group: "core", detail: "การให้คอมพิวเตอร์เรียนรู้รูปแบบจากข้อมูล" },
+    { id: "Deep Learning", group: "core", detail: "เทคนิคที่ใช้ Neural Network หลายชั้น" },
+    { id: "Neural Network", group: "technique", detail: "โครงสร้างการคำนวณที่จำลองเซลล์ประสาท" },
+    { id: "Transformer", group: "technique", detail: "สถาปัตยกรรมเบื้องหลังโมเดลภาษาสมัยใหม่" },
+    { id: "NLP", group: "core", detail: "การประมวลผลภาษาธรรมชาติ" },
+    { id: "Computer Vision", group: "core", detail: "การให้คอมพิวเตอร์เข้าใจข้อมูลภาพ" },
+    { id: "LLM", group: "technique", detail: "โมเดลภาษาขนาดใหญ่ที่ฝึกจากข้อความจำนวนมาก" },
+    { id: "Claude", group: "tool", detail: "ผู้ช่วย AI จาก Anthropic ที่ใช้สถาปัตยกรรม Transformer" },
+    { id: "GPT", group: "tool", detail: "ตระกูลโมเดลภาษาจาก OpenAI" },
+    { id: "Midjourney", group: "tool", detail: "เครื่องมือสร้างภาพจากข้อความด้วย Diffusion Model" },
+    { id: "Diffusion Model", group: "technique", detail: "เทคนิคการสร้างภาพโดยค่อยๆ ลดสัญญาณรบกวนออกจากภาพ" }
+  ];
+
+  const links = [
+    { source: "AI", target: "Machine Learning" },
+    { source: "AI", target: "NLP" },
+    { source: "AI", target: "Computer Vision" },
+    { source: "Machine Learning", target: "Deep Learning" },
+    { source: "Deep Learning", target: "Neural Network" },
+    { source: "Deep Learning", target: "Transformer" },
+    { source: "Transformer", target: "LLM" },
+    { source: "NLP", target: "LLM" },
+    { source: "LLM", target: "Claude" },
+    { source: "LLM", target: "GPT" },
+    { source: "Computer Vision", target: "Diffusion Model" },
+    { source: "Diffusion Model", target: "Midjourney" }
+  ];
+
+  const colorByGroup = { core: "#6366f1", technique: "#a855f7", tool: "#f97316" };
+
+  const width = document.getElementById('network-svg').clientWidth || 600;
+  const height = 440;
+
+  const svg = d3.select('#network-svg').attr('viewBox', [0, 0, width, height]);
+  const g = svg.append('g');
+
+  svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', (event) => {
+    g.attr('transform', event.transform);
+  }));
+
+  // ===== สร้าง force simulation =====
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(90))
+    .force('charge', d3.forceManyBody().strength(-260))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(36));
+
+  const link = g.append('g')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('class', 'link');
+
+  const node = g.append('g')
+    .selectAll('.node')
+    .data(nodes)
+    .join('g')
+    .attr('class', 'node')
+    .call(d3.drag()
+      .on('start', dragStarted)
+      .on('drag', dragged)
+      .on('end', dragEnded))
+    .on('click', (event, d) => showDetail(d));
+
+  node.append('circle')
+    .attr('r', d => d.group === 'core' ? 20 : 14)
+    .attr('fill', d => colorByGroup[d.group]);
+
+  node.append('text')
+    .attr('dy', d => d.group === 'core' ? 34 : 28)
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#334155')
+    .text(d => d.id);
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node.attr('transform', d => `translate(${d.x}, ${d.y})`);
+  });
+
+  function dragStarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragEnded(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // ===== แสดงรายละเอียดเมื่อคลิกโหนด =====
+  function showDetail(nodeData) {
+    const panel = document.getElementById('detail-panel');
+    panel.innerHTML = `
+      <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-2">รายละเอียด</p>
+      <h3 class="text-lg font-bold text-slate-800 mb-2">${nodeData.id}</h3>
+      <p class="text-sm text-slate-600 leading-relaxed">${nodeData.detail}</p>
+    `;
+  }
+</script>
+
+</body>
+</html>

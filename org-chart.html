@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Org Chart: ทีมพัฒนา AI Product</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .org-node { transition: all 0.2s ease; cursor: pointer; }
+  .org-node:hover { transform: translateY(-3px); }
+  .org-node.active { box-shadow: 0 0 0 3px #6366f1; }
+
+  /* เส้นเชื่อมแนวตั้ง-แนวนอนแบบ CSS */
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; text-align: center; }
+  .tree ul { display: flex; justify-content: center; padding-top: 24px; position: relative; }
+  .tree li { position: relative; padding: 0 12px; }
+  .tree li::before {
+    content: '';
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    border-left: 2px solid #c7d2fe;
+    height: 24px;
+  }
+  .tree > li::before { display: none; }
+  .tree ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    right: 50%;
+    border-top: 2px solid #c7d2fe;
+  }
+  .tree li:only-child::after { display: none; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-4xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">👥 โครงสร้างทีมพัฒนา AI Product</h1>
+    <p class="text-slate-500 mt-1">คลิกที่กล่องเพื่อดูรายละเอียดตำแหน่งงาน</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+    <div class="overflow-x-auto pb-4">
+      <div id="chart-container" class="min-w-[640px]"></div>
+    </div>
+
+    <!-- แผงรายละเอียด -->
+    <div id="detail-panel" class="mt-6 bg-indigo-50 rounded-xl p-5 hidden">
+      <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-2">รายละเอียดตำแหน่ง</p>
+      <h3 id="detail-title" class="text-lg font-bold text-slate-800 mb-1"></h3>
+      <p id="detail-role" class="text-sm text-indigo-500 mb-2"></p>
+      <p id="detail-text" class="text-sm text-slate-600 leading-relaxed"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูลโครงสร้างองค์กร (แยกจาก UI logic) =====
+  const orgData = {
+    name: "หัวหน้าฝ่าย AI Product",
+    role: "Head of AI Product",
+    detail: "รับผิดชอบวิสัยทัศน์และกลยุทธ์โดยรวมของผลิตภัณฑ์ AI ประสานงานระหว่างทีมต่างๆ ให้บรรลุเป้าหมายร่วมกัน",
+    color: "bg-indigo-600 text-white",
+    children: [
+      {
+        name: "หัวหน้าทีม ML Engineer",
+        role: "ML Engineering Lead",
+        detail: "ดูแลการพัฒนาและปรับปรุงโมเดล Machine Learning ให้มีความแม่นยำและประสิทธิภาพสูงสุด",
+        color: "bg-white border-2 border-indigo-200",
+        children: [
+          { name: "Data Scientist", role: "วิเคราะห์และเตรียมข้อมูล", detail: "รับผิดชอบการวิเคราะห์ข้อมูล ทำความสะอาดข้อมูล และสร้าง feature ที่ใช้ฝึกโมเดล", color: "bg-white border border-slate-200" },
+          { name: "MLOps Engineer", role: "ดูแลระบบ deploy โมเดล", detail: "ดูแลการนำโมเดลขึ้นใช้งานจริง ตรวจสอบประสิทธิภาพ และจัดการ pipeline การฝึกโมเดลอัตโนมัติ", color: "bg-white border border-slate-200" }
+        ]
+      },
+      {
+        name: "หัวหน้าทีม Product Design",
+        role: "Design Lead",
+        detail: "ออกแบบประสบการณ์การใช้งานของผลิตภัณฑ์ AI ให้เข้าใจง่ายและตอบโจทย์ผู้ใช้",
+        color: "bg-white border-2 border-indigo-200",
+        children: [
+          { name: "UX Researcher", role: "วิจัยพฤติกรรมผู้ใช้", detail: "ศึกษาความต้องการและพฤติกรรมของผู้ใช้ เพื่อนำมาปรับปรุงการออกแบบผลิตภัณฑ์", color: "bg-white border border-slate-200" },
+          { name: "UI Designer", role: "ออกแบบหน้าตาผลิตภัณฑ์", detail: "ออกแบบส่วนติดต่อผู้ใช้ให้สวยงามและใช้งานง่าย สอดคล้องกับแบรนด์", color: "bg-white border border-slate-200" }
+        ]
+      },
+      {
+        name: "หัวหน้าทีม Frontend/Backend",
+        role: "Engineering Lead",
+        detail: "ดูแลการพัฒนาระบบซอฟต์แวร์ที่เชื่อมต่อโมเดล AI เข้ากับผลิตภัณฑ์จริง",
+        color: "bg-white border-2 border-indigo-200",
+        children: [
+          { name: "Frontend Developer", role: "พัฒนาส่วนติดต่อผู้ใช้", detail: "พัฒนาเว็บแอปพลิเคชันหรือแอปมือถือที่ผู้ใช้ปฏิสัมพันธ์ด้วย", color: "bg-white border border-slate-200" },
+          { name: "Backend Developer", role: "พัฒนาระบบเบื้องหลัง", detail: "พัฒนา API และระบบเซิร์ฟเวอร์ที่เชื่อมต่อโมเดล AI เข้ากับส่วนหน้าบ้าน", color: "bg-white border border-slate-200" }
+        ]
+      }
+    ]
+  };
+
+  // ===== สร้างโครงสร้าง HTML แบบ tree =====
+  function buildNode(node, isRoot = false) {
+    const li = document.createElement('li');
+    const box = document.createElement('div');
+    box.className = `org-node inline-block px-4 py-3 rounded-xl shadow-sm ${node.color} min-w-[160px]`;
+    box.innerHTML = `
+      <p class="font-semibold text-sm ${isRoot ? '' : 'text-slate-800'}">${node.name}</p>
+      <p class="text-xs mt-0.5 ${isRoot ? 'text-indigo-100' : 'text-slate-400'}">${node.role}</p>
+    `;
+    box.onclick = () => showDetail(node);
+    li.appendChild(box);
+
+    if (node.children && node.children.length) {
+      const ul = document.createElement('ul');
+      node.children.forEach(child => ul.appendChild(buildNode(child)));
+      li.appendChild(ul);
+    }
+    return li;
+  }
+
+  function renderChart() {
+    const container = document.getElementById('chart-container');
+    const treeRoot = document.createElement('ul');
+    treeRoot.className = 'tree';
+    treeRoot.appendChild(buildNode(orgData, true));
+    container.innerHTML = '';
+    container.appendChild(treeRoot);
+  }
+
+  function showDetail(node) {
+    document.querySelectorAll('.org-node').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    document.getElementById('detail-panel').classList.remove('hidden');
+    document.getElementById('detail-title').textContent = node.name;
+    document.getElementById('detail-role').textContent = node.role;
+    document.getElementById('detail-text').textContent = node.detail;
+  }
+
+  renderChart();
+</script>
+
+</body>
+</html>

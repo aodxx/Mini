@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit Converter: แปลงหน่วย</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .category-btn.active { background-color: #6366f1; color: white; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-lg">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🔄 แปลงหน่วย</h1>
+    <p class="text-slate-500 mt-1">เลือกหมวดหมู่แล้วกรอกค่าเพื่อแปลงหน่วยทันที</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-6 md:p-8">
+
+    <!-- ปุ่มเลือกหมวดหมู่ -->
+    <div class="flex gap-2 mb-6 overflow-x-auto" id="category-bar"></div>
+
+    <!-- ช่องกรอกค่า + ผลลัพธ์ -->
+    <div class="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
+      <div>
+        <label class="text-xs text-slate-400 mb-1 block">จาก</label>
+        <input type="number" id="input-value" value="1" class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-lg font-semibold text-slate-800 focus:border-indigo-400 focus:outline-none">
+        <select id="from-unit" class="w-full mt-2 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 focus:border-indigo-400 focus:outline-none"></select>
+      </div>
+
+      <button onclick="swapUnits()" class="mt-6 w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition">
+        ⇄
+      </button>
+
+      <div>
+        <label class="text-xs text-slate-400 mb-1 block">เป็น</label>
+        <input type="text" id="output-value" readonly class="w-full border-2 border-indigo-100 bg-indigo-50 rounded-xl px-4 py-3 text-lg font-semibold text-indigo-700">
+        <select id="to-unit" class="w-full mt-2 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 focus:border-indigo-400 focus:outline-none"></select>
+      </div>
+    </div>
+
+    <p id="error-message" class="text-sm text-rose-500 text-center hidden">⚠️ กรุณากรอกตัวเลขที่ถูกต้อง</p>
+
+    <button onclick="resetConverter()" class="w-full mt-4 text-sm text-slate-400 hover:text-indigo-500 transition">🔄 รีเซ็ตค่าเริ่มต้น</button>
+
+  </div>
+</div>
+
+<script>
+  // ===== ข้อมูลหมวดหมู่และอัตราแปลงหน่วย (เทียบกับหน่วยฐาน) =====
+  const categories = {
+    length: {
+      label: "📏 ความยาว",
+      base: "m",
+      units: { "มิลลิเมตร (mm)": 0.001, "เซนติเมตร (cm)": 0.01, "เมตร (m)": 1, "กิโลเมตร (km)": 1000, "นิ้ว (in)": 0.0254, "ฟุต (ft)": 0.3048, "ไมล์ (mi)": 1609.34 }
+    },
+    weight: {
+      label: "⚖️ น้ำหนัก",
+      base: "kg",
+      units: { "กรัม (g)": 0.001, "กิโลกรัม (kg)": 1, "ตัน (t)": 1000, "ปอนด์ (lb)": 0.453592, "ออนซ์ (oz)": 0.0283495 }
+    },
+    temperature: {
+      label: "🌡️ อุณหภูมิ",
+      base: "celsius",
+      units: { "เซลเซียส (°C)": "celsius", "ฟาเรนไฮต์ (°F)": "fahrenheit", "เคลวิน (K)": "kelvin" }
+    },
+    volume: {
+      label: "🧪 ปริมาตร",
+      base: "l",
+      units: { "มิลลิลิตร (ml)": 0.001, "ลิตร (l)": 1, "แกลลอน (gal)": 3.78541, "ถ้วยตวง (cup)": 0.236588 }
+    }
+  };
+
+  let currentCategory = "length";
+
+  // ===== แปลงอุณหภูมิ (ต้องใช้สูตรเฉพาะ ไม่ใช่ตัวคูณธรรมดา) =====
+  function convertTemperature(value, fromUnit, toUnit) {
+    let celsius;
+    if (fromUnit === "celsius") celsius = value;
+    else if (fromUnit === "fahrenheit") celsius = (value - 32) * 5 / 9;
+    else if (fromUnit === "kelvin") celsius = value - 273.15;
+
+    if (toUnit === "celsius") return celsius;
+    if (toUnit === "fahrenheit") return celsius * 9 / 5 + 32;
+    if (toUnit === "kelvin") return celsius + 273.15;
+  }
+
+  function renderCategoryBar() {
+    const bar = document.getElementById('category-bar');
+    bar.innerHTML = '';
+    Object.entries(categories).forEach(([key, cat]) => {
+      const btn = document.createElement('button');
+      btn.className = `category-btn shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 border-slate-100 text-slate-600 transition ${key === currentCategory ? 'active' : ''}`;
+      btn.textContent = cat.label;
+      btn.onclick = () => selectCategory(key);
+      bar.appendChild(btn);
+    });
+  }
+
+  function populateUnitSelects() {
+    const cat = categories[currentCategory];
+    const unitNames = Object.keys(cat.units);
+
+    const fromSelect = document.getElementById('from-unit');
+    const toSelect = document.getElementById('to-unit');
+    fromSelect.innerHTML = unitNames.map(u => `<option value="${u}">${u}</option>`).join('');
+    toSelect.innerHTML = unitNames.map(u => `<option value="${u}">${u}</option>`).join('');
+
+    fromSelect.selectedIndex = 0;
+    toSelect.selectedIndex = unitNames.length > 1 ? 1 : 0;
+  }
+
+  function selectCategory(key) {
+    currentCategory = key;
+    renderCategoryBar();
+    populateUnitSelects();
+    performConversion();
+  }
+
+  function performConversion() {
+    const cat = categories[currentCategory];
+    const inputEl = document.getElementById('input-value');
+    const value = parseFloat(inputEl.value);
+    const errorMsg = document.getElementById('error-message');
+
+    if (isNaN(value)) {
+      errorMsg.classList.remove('hidden');
+      document.getElementById('output-value').value = '';
+      return;
+    }
+    errorMsg.classList.add('hidden');
+
+    const fromUnit = document.getElementById('from-unit').value;
+    const toUnit = document.getElementById('to-unit').value;
+    let result;
+
+    if (currentCategory === 'temperature') {
+      result = convertTemperature(value, cat.units[fromUnit], cat.units[toUnit]);
+    } else {
+      const baseValue = value * cat.units[fromUnit];
+      result = baseValue / cat.units[toUnit];
+    }
+
+    // จัดรูปแบบทศนิยมให้อ่านง่าย ตัดเลขศูนย์ท้ายที่ไม่จำเป็นออก
+    document.getElementById('output-value').value = parseFloat(result.toFixed(6)).toString();
+  }
+
+  function swapUnits() {
+    const fromSelect = document.getElementById('from-unit');
+    const toSelect = document.getElementById('to-unit');
+    const temp = fromSelect.value;
+    fromSelect.value = toSelect.value;
+    toSelect.value = temp;
+    performConversion();
+  }
+
+  function resetConverter() {
+    document.getElementById('input-value').value = 1;
+    currentCategory = 'length';
+    renderCategoryBar();
+    populateUnitSelects();
+    performConversion();
+  }
+
+  // ผูก event สำหรับคำนวณแบบเรียลไทม์
+  document.getElementById('input-value').addEventListener('input', performConversion);
+  document.getElementById('from-unit').addEventListener('change', performConversion);
+  document.getElementById('to-unit').addEventListener('change', performConversion);
+
+  // เริ่มต้น
+  renderCategoryBar();
+  populateUnitSelects();
+  performConversion();
+</script>
+
+</body>
+</html>

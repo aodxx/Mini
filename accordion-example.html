@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accordion: คำถามที่พบบ่อยเกี่ยวกับ AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', 'Noto Sans Thai', sans-serif; }
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    opacity: 0;
+  }
+  .accordion-content.open {
+    opacity: 1;
+  }
+  .accordion-icon {
+    transition: transform 0.3s ease;
+  }
+  .accordion-icon.open {
+    transform: rotate(180deg);
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center p-4">
+
+<div class="w-full max-w-2xl">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">❓ คำถามที่พบบ่อยเกี่ยวกับ AI</h1>
+    <p class="text-slate-500 mt-1">คลิกที่คำถามเพื่อดูคำตอบ</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100 p-4 md:p-6">
+    <div id="accordion-list" class="divide-y divide-slate-100"></div>
+  </div>
+
+</div>
+
+<script>
+  // ===== ข้อมูลคำถาม-คำตอบ (แยกจาก UI logic) =====
+  const faqs = [
+    {
+      question: "AI แตกต่างจากโปรแกรมคอมพิวเตอร์ทั่วไปอย่างไร?",
+      answer: "โปรแกรมทั่วไปทำงานตามกฎที่มนุษย์เขียนไว้ตายตัว ในขณะที่ AI โดยเฉพาะ Machine Learning จะเรียนรู้รูปแบบจากข้อมูลด้วยตัวเอง ทำให้ปรับตัวกับสถานการณ์ใหม่ๆ ได้ดีกว่า"
+    },
+    {
+      question: "ต้องมีพื้นฐานคณิตศาสตร์แค่ไหนถึงจะเรียน AI ได้?",
+      answer: "พื้นฐานที่ช่วยได้มากคือ พีชคณิตเชิงเส้น (Linear Algebra) แคลคูลัส และความน่าจะเป็น/สถิติ แต่ปัจจุบันมีเครื่องมือสำเร็จรูปมากมายที่ทำให้เริ่มต้นใช้งาน AI ได้โดยไม่ต้องเชี่ยวชาญคณิตศาสตร์ขั้นสูงตั้งแต่แรก"
+    },
+    {
+      question: "ChatGPT กับ Claude ต่างกันอย่างไร?",
+      answer: "ทั้งสองเป็น Large Language Model (LLM) ที่พัฒนาโดยบริษัทต่างกัน คือ OpenAI และ Anthropic ตามลำดับ ทั้งคู่ใช้หลักการพื้นฐานคล้ายกันแต่ถูกฝึกด้วยข้อมูลและวิธีการที่ต่างกัน ทำให้มีจุดเด่นและสไตล์การตอบที่แตกต่างกันไป"
+    },
+    {
+      question: "AI จะมาแทนที่งานของมนุษย์ทั้งหมดหรือไม่?",
+      answer: "ในปัจจุบัน AI เก่งในงานที่มีรูปแบบชัดเจนและทำซ้ำได้ แต่ยังมีข้อจำกัดในงานที่ต้องใช้วิจารณญาณ ความคิดสร้างสรรค์เชิงลึก หรือปฏิสัมพันธ์ทางสังคมที่ซับซ้อน แนวโน้มที่เห็นชัดคือ AI จะเข้ามาเป็นเครื่องมือช่วยงานมากกว่าแทนที่มนุษย์ทั้งหมด"
+    },
+    {
+      question: "ทำไม AI บางครั้งถึงตอบผิดหรือมั่นใจในคำตอบที่ไม่ถูกต้อง?",
+      answer: "ปรากฏการณ์นี้เรียกว่า Hallucination เกิดจากการที่โมเดลทำนายคำตอบจากรูปแบบทางสถิติของข้อมูลที่เคยเห็น ไม่ได้ 'รู้จริง' แบบมนุษย์ จึงอาจสร้างข้อมูลที่ฟังดูสมเหตุสมผลแต่ผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญจากแหล่งอื่นเสมอ"
+    },
+    {
+      question: "ควรเริ่มต้นเรียนรู้ AI จากตรงไหนดี?",
+      answer: "แนะนำให้เริ่มจากการทำความเข้าใจแนวคิดพื้นฐาน เช่น Machine Learning และ Neural Network ก่อน จากนั้นลองใช้งานเครื่องมือ AI สำเร็จรูปเพื่อสร้างความคุ้นเคย แล้วค่อยศึกษาการเขียนโค้ดด้วยภาษา Python และไลบรารีอย่าง scikit-learn หรือ PyTorch เมื่อพร้อมเจาะลึกมากขึ้น"
+    }
+  ];
+
+  let openIndex = null; // เก็บ index ของหัวข้อที่เปิดอยู่ (เปิดได้ทีละหัวข้อ)
+
+  function renderAccordion() {
+    const list = document.getElementById('accordion-list');
+    list.innerHTML = '';
+
+    faqs.forEach((faq, idx) => {
+      const isOpen = idx === openIndex;
+
+      const item = document.createElement('div');
+      item.className = 'py-1';
+
+      item.innerHTML = `
+        <button class="w-full flex items-center justify-between gap-4 py-4 text-left group" data-idx="${idx}">
+          <span class="font-medium text-slate-700 group-hover:text-indigo-600 transition">${faq.question}</span>
+          <span class="accordion-icon ${isOpen ? 'open' : ''} shrink-0 text-indigo-500 text-lg">⌄</span>
+        </button>
+        <div class="accordion-content ${isOpen ? 'open' : ''}" style="max-height: ${isOpen ? '300px' : '0'}">
+          <p class="text-slate-500 text-sm leading-relaxed pb-4 pr-8">${faq.answer}</p>
+        </div>
+      `;
+
+      item.querySelector('button').onclick = () => toggleItem(idx);
+      list.appendChild(item);
+    });
+  }
+
+  function toggleItem(idx) {
+    openIndex = openIndex === idx ? null : idx;
+    renderAccordion();
+  }
+
+  // เริ่มต้นแสดงรายการ (ยังไม่เปิดข้อไหน)
+  renderAccordion();
+</script>
+
+</body>
+</html>
